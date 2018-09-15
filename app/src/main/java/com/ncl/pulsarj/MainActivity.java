@@ -5,15 +5,16 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.AppCompatEditText;
+import android.text.TextUtils;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.concurrent.CompletableFuture;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import okhttp3.HttpUrl;
+import java.io.IOException;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -25,17 +26,17 @@ import okio.ByteString;
 
 public class MainActivity extends AppCompatActivity {
 
-    //private PulsarClient pulsarClient;
-    //private Producer<byte[]> producer;
-
-    String wsUrl = "ws://192.168.1.79:6650/ws/v2/producer/persistent/public/default/my-topic";
+    // String wsUrl = "ws://192.168.1.79:8080/ws/v2/producer/persistent/public/default/my-topic";
+    String wsUrl = "ws://192.168.1.79:8080/ws/v2/consumer/persistent/public/default/my-topic/my-subs";
     // String wsUrl = "wss://echo.websocket.org";
-    // admin/v2/persistent,pulsar://localhost:6650/
 
     private WebSocket webSocket;
     private AppCompatEditText outText;
     private TextView inText;
-
+    private int counter = 0;
+    private boolean producer;
+    private boolean automaticAck = true;
+    private String lastMsgId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,9 +54,17 @@ public class MainActivity extends AppCompatActivity {
 
                 if (webSocket != null) {
 
-                    String msg = outText.getText().toString();
+                    if (producer) {
+                        String msg = outText.getText().toString() + "_" + counter;
+                        counter ++;
 
-                    webSocket.send("{\"payload\":\"" + msg + "\"}");
+                        String msgEncoded = "\"" + Base64.encodeToString(msg.getBytes(), Base64.NO_WRAP | Base64.NO_PADDING) + "\"";
+                        webSocket.send("{\"payload\":"+ msgEncoded + "}");
+                    }
+                    else {
+                        String ackMsg = "{\"messageId\":" + "\"" + lastMsgId + "\"}";
+                        webSocket.send(ackMsg);
+                    }
 
                 }
 
@@ -70,48 +79,15 @@ public class MainActivity extends AppCompatActivity {
 
         if (webSocket != null) {
             webSocket.cancel();
-            webSocket.close(1001, "All good");
+            webSocket.close(1000, "All good");
         }
     }
 
-    /*
-    private void createClient() {
-        new AsyncTask<Void, Void, Void>() {
-            @Override
-            protected Void doInBackground(Void... voids) {
-
-
-                try {
-
-                    pulsarClient = PulsarClient.builder()
-                            .serviceUrl("pulsar://localhost:6650")
-                            .build();
-
-                    producer = pulsarClient.newProducer().topic("my-topic").create();
-
-                } catch (PulsarClientException e) {
-                    e.printStackTrace();
-                }
-
-
-                return null;
-
-            }
-
-
-        }.execute();
-    }
-    */
-
     private void createWebSocket() {
-
         Request wsRequest = createRequest(wsUrl);
         OkHttpClient okHttpClient = createHttpClient();
 
-
         webSocket = okHttpClient.newWebSocket(wsRequest, wsListener);
-
-
     }
 
     private OkHttpClient createHttpClient() {
@@ -153,14 +129,29 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onMessage(WebSocket webSocket, final String text) {
+        public void onMessage(final WebSocket webSocket, final String text) {
             super.onMessage(webSocket, text);
 
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    inText.append(text);
-                    inText.append("\n");
+                    try {
+                        inText.append("onMessage:\n");
+                        inText.append(text);
+                        inText.append("\n");
+
+                        JSONObject jMsg = new JSONObject(text);
+                        lastMsgId = jMsg.optString("messageId");
+
+                        if (!TextUtils.isEmpty(lastMsgId) && automaticAck) {
+                            String ackMsg = "{\"messageId\":" + "\"" + lastMsgId + "\"}";
+                            webSocket.send(ackMsg);
+                        }
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
                 }
             });
         }
@@ -182,7 +173,7 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    inText.append("onClosed: " + reason);
+                    inText.append("onClosed:\n" + reason);
                     inText.append("\n");
                 }
             });
@@ -195,7 +186,7 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    inText.append("onFailure: " + t.getMessage());
+                    inText.append("onFailure:\n" + t.getMessage());
                     inText.append("\n");
                 }
             });
