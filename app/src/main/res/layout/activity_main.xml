@@ -7,20 +7,50 @@
     tools:context=".MainActivity">
 
     <android.support.v7.widget.AppCompatEditText
-        android:id="@+id/outText"
+        android:id="@+id/pubTopic"
         android:layout_width="0dp"
         android:layout_height="56dp"
         android:padding="16dp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:text="Send me!"/>
+        android:hint="Sink Topic"/>
+
+    <android.support.v7.widget.AppCompatEditText
+        android:id="@+id/subTopic"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:padding="16dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/pubTopic"
+        android:hint="Source Topic"/>
+
+    <Button
+        android:id="@+id/updateTopic"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@+id/subTopic"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_margin="16dp"
+        android:text="Update"/>
+
+    <android.support.v7.widget.AppCompatEditText
+        android:id="@+id/message"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:padding="16dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/updateTopic"
+        android:text="Message"/>
 
     <Button
         android:id="@+id/send"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@+id/outText"
+        app:layout_constraintTop_toBottomOf="@+id/message"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         android:layout_marginTop="16dp"
